@@ -1,0 +1,45 @@
+1;0;INICIO;aforo=10 modo=NORMAL puerto=5000
+2;0;FIN;coordinador detenido
+1;0;INICIO;aforo=10 modo=NORMAL puerto=5000
+3;0;RECIBIR;LATIDO de puerta 1
+4;0;PUERTA_ACTIVA;P1 Norte (antes SIN_LATIDOS)
+5;0;RECIBIR;LATIDO de puerta 1
+6;0;RECIBIR;ENTRAR de puerta 1
+7;0;ENVIAR;RESPUESTA ENTRAR PERMITIDA a puerta 1 dentro=1
+10;0;RECIBIR;LATIDO de puerta 1
+11;0;RECIBIR;ESTADO de puerta 1
+12;0;ENVIAR;RESPUESTA ESTADO PERMITIDA a puerta 1 dentro=1
+15;0;RECIBIR;LATIDO de puerta 1
+16;0;RECIBIR;LATIDO de puerta 1
+17;0;RECIBIR;LATIDO de puerta 1
+18;0;RECIBIR;LATIDO de puerta 1
+19;0;FIN;coordinador detenido
+1;0;INICIO;aforo=10 modo=NORMAL puerto=5000
+3;0;RECIBIR;LATIDO de puerta 1
+4;0;PUERTA_ACTIVA;P1 Norte (antes SIN_LATIDOS)
+5;0;RECIBIR;LATIDO de puerta 1
+6;0;RECIBIR;ENTRAR de puerta 1
+7;0;ENVIAR;RESPUESTA ENTRAR PERMITIDA a puerta 1 dentro=1
+10;0;RECIBIR;LATIDO de puerta 1
+11;0;RECIBIR;ESTADO de puerta 1
+12;0;ENVIAR;RESPUESTA ESTADO PERMITIDA a puerta 1 dentro=1
+15;0;RECIBIR;LATIDO de puerta 1
+16;0;RECIBIR;LATIDO de puerta 1
+17;0;RECIBIR;LATIDO de puerta 1
+18;0;RECIBIR;LATIDO de puerta 1
+19;0;RECIBIR;LATIDO de puerta 1
+20;0;RECIBIR;LATIDO de puerta 1
+21;0;RECIBIR;LATIDO de puerta 1
+22;0;RECIBIR;LATIDO de puerta 1
+23;0;RECIBIR;LATIDO de puerta 1
+24;0;RECIBIR;LATIDO de puerta 1
+25;0;RECIBIR;LATIDO de puerta 1
+26;0;RECIBIR;LATIDO de puerta 1
+27;0;RECIBIR;LATIDO de puerta 1
+28;0;RECIBIR;LATIDO de puerta 1
+29;0;RECIBIR;LATIDO de puerta 1
+30;0;RECIBIR;LATIDO de puerta 1
+31;0;RECIBIR;LATIDO de puerta 1
+32;0;RECIBIR;LATIDO de puerta 1
+33;0;RECIBIR;LATIDO de puerta 1
+34;0;FIN;coordinador detenido
