@@ -1,0 +1,2 @@
+2026-11-23 14:04:09 | solicitudes=30 permitidas=10 rechazadas=20 errores=0 | coordinador: dentro=10 aforo=10
+2026-11-23 14:11:13 | solicitudes=30 permitidas=30 rechazadas=0 errores=0 | coordinador: dentro=29 aforo=10
