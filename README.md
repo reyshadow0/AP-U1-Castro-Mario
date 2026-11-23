@@ -1,114 +1,147 @@
-# AP-U1 AforoSeguro - Castro Mario
+# AP-U1 · TurnoJusto
 
-Prototipo de control de aforo distribuido para el Coliseo de Quevedo. Tiene un coordinador (id 0) que lleva la cuenta global y tres puertas (P1 Norte, P2 Sur y P3 Este, ids 1 a 3) que le piden permiso para cada entrada y salida. Todo se comunica por sockets TCP en Java 21, sin bibliotecas externas.
+Aporte práctico de la Unidad I de Aplicaciones Distribuidas (ISR-701), Grupo 2.
+Estudiante: Mario Sebastián Castro Coello.
 
-## Requisitos
+Un coordinador (id 0) entrega números de turno consecutivos y sin repetir, con un cupo por jornada. Tres ventanillas (V1, V2 y V3, ids 1 a 3) le piden turnos, llaman al siguiente en espera y le envían latidos. Todos los procesos llevan un reloj de Lamport y escriben su bitácora en `logs/`.
 
-- JDK 21
-- IntelliJ IDEA, o `javac` y `java` desde la consola
-- MiKTeX o TeX Live para compilar el informe
+Hecho en Java 21 con sockets TCP. No usa bibliotecas externas.
+
+## Estructura
+
+```
+src/                 Coordinador, Ventanilla, PruebaCarga, OrdenTotal y clases de apoyo
+config.properties    cupo, token, host, puerto y tiempos de latido
+logs/                bitacora de cada proceso y orden_total.log
+docs/informe.tex     informe (y informe.pdf)
+docs/img/            capturas de E0 a E6
+docs/entrega_SGA.tex pagina unica para el SGA (y su PDF)
+```
 
 ## Configuración
 
-El archivo `config.properties` está en la raíz del proyecto:
+`config.properties` se lee desde la carpeta donde se ejecuta el proceso, que debe ser la raíz del repositorio.
 
 | Clave | Valor | Uso |
 |---|---|---|
-| `aforo` | 10 | Máximo de personas dentro |
-| `token` | AFORO-UTEQ-2026 | Token que debe llevar toda solicitud |
-| `host` | 127.0.0.1 | Dirección del coordinador |
-| `puerto` | 5000 | Puerto del coordinador |
-| `intervalo_latido` | 2 | Segundos entre latidos de cada puerta |
-| `timeout_latido` | 6 | Segundos sin latido para marcar una puerta como CAIDA |
-| `pausa_inseguro_ms` | 50 | Pausa entre consulta y actualización en modo `--inseguro` |
+| `host` | `localhost` | dirección del coordinador |
+| `puerto` | `5000` | puerto TCP del coordinador |
+| `token` | `TJ-2026-UTEQ` | token que debe llevar toda solicitud |
+| `cupo` | `10` | turnos máximos por jornada |
+| `latido.intervalo.ms` | `2000` | cada cuánto envía latido una ventanilla |
+| `latido.timeout.ms` | `6000` | tiempo sin latidos para marcar una ventanilla como CAIDA |
+| `log.latidos` | `false` | si es `true`, los latidos también se escriben en la bitácora |
+| `logs.dir` | `logs` | carpeta de los registros |
 
-Todos los procesos leen el archivo desde el directorio de trabajo, así que hay que ejecutarlos desde la raíz del proyecto.
+Todos los procesos aceptan `--config <ruta>` para usar otro archivo.
 
-## Compilación y ejecución
+## Compilar
 
-### Desde la consola (PowerShell, en la raíz del proyecto)
+Desde la raíz del repositorio, en PowerShell:
 
-```powershell
-javac -d out src/aforoseguro/*.java
+```
+javac -encoding UTF-8 -d out src\*.java
 ```
 
-Cada proceso va en una consola distinta, en este orden:
+En IntelliJ IDEA: marcar `src` como Sources Root, dejar el *Working directory* de cada configuración en la raíz del proyecto y usar Build > Build Project.
 
-```powershell
-java -cp out aforoseguro.Coordinador            # 1. coordinador normal
-java -cp out aforoseguro.Puerta 1               # 2. P1 Norte
-java -cp out aforoseguro.Puerta 2               # 3. P2 Sur
-java -cp out aforoseguro.Puerta 3               # 4. P3 Este
-```
+## Ejecutar
 
-Programas de prueba:
+Cada proceso va en su propia terminal. Orden de arranque:
 
-```powershell
-java -cp out aforoseguro.Coordinador --inseguro # coordinador en modo inseguro (E3)
-java -cp out aforoseguro.PruebaCarga            # 30 ENTRAR simultáneas, 10 hilos por puerta
-java -cp out aforoseguro.OrdenTotal             # genera logs/orden_total.log
-```
+1. Coordinador:
+   ```
+   java -cp out Coordinador
+   ```
+   Para el modo inseguro del escenario E3:
+   ```
+   java -cp out Coordinador --inseguro
+   ```
+2. Ventanillas, una por terminal:
+   ```
+   java -cp out Ventanilla 1
+   java -cp out Ventanilla 2
+   java -cp out Ventanilla 3
+   ```
+   Órdenes por consola: `turno`, `llamar`, `estado` y `salir`.
+   Para probar un token incorrecto (E2): `java -cp out Ventanilla 2 --token MALO`
+3. Prueba de carga, con el coordinador recién iniciado (los turnos emitidos en 0):
+   ```
+   java -cp out PruebaCarga
+   ```
+4. Orden total, al terminar los escenarios:
+   ```
+   java -cp out OrdenTotal
+   ```
+   Genera `logs/orden_total.log`. Acepta como argumento otra carpeta de registros.
 
-### Argumentos
-
-- Coordinador: `--inseguro` activa el modo inseguro y `--aforo N` reemplaza el aforo del archivo de configuración.
-- Puerta: `1`, `2` o `3`.
-- PruebaCarga: `--hilos N` cambia los hilos por puerta (10 por defecto).
-
-### Órdenes en la consola de cada puerta
-
-| Orden | Qué hace |
-|---|---|
-| `entrar` | Pide permiso para que entre una persona |
-| `entrar N` | Repite la solicitud N veces |
-| `salir` | Avisa que salió una persona |
-| `estado` | Muestra personas dentro, aforo y el estado de las tres puertas |
-| `probar-token VALOR` | Manda un ENTRAR con un token distinto, para el escenario E2 |
-| `fin` | Cierra la puerta |
+Las bitácoras se abren en modo de agregar, así que se acumulan entre ejecuciones. Para empezar de cero hay que borrar el contenido de `logs/`.
 
 ## Formato de los mensajes
 
-Cada mensaje es un objeto JSON en una sola línea terminada en salto de línea (`\n`). El JSON generado nunca contiene saltos de línea, así que el `\n` separa un mensaje del siguiente y varias solicitudes seguidas no se mezclan (requisito A2). Del lado que recibe se lee con `readLine()`.
+Cada mensaje es un JSON plano de una sola línea terminado en salto de línea (`\n`). El salto de línea es el delimitador: el receptor lee una línea completa por mensaje, así que varias solicitudes enviadas seguidas no se mezclan. El coordinador responde cada línea con otra línea.
 
-Solicitud de una puerta:
+Solicitudes de la ventanilla al coordinador:
 
-```json
-{"tipo":"ENTRAR","token":"AFORO-UTEQ-2026","puerta":2,"lamport":17}
+```
+{"tipo":"TURNO","token":"TJ-2026-UTEQ","ventanilla":2,"lamport":17}
+{"tipo":"LLAMAR","token":"TJ-2026-UTEQ","ventanilla":2,"lamport":21}
+{"tipo":"ESTADO","token":"TJ-2026-UTEQ","ventanilla":2,"lamport":25}
+{"tipo":"LATIDO","token":"TJ-2026-UTEQ","ventanilla":2,"lamport":30}
 ```
 
-`tipo` puede ser `ENTRAR`, `SALIR`, `ESTADO` o `LATIDO`. El latido no recibe respuesta.
+Respuestas del coordinador:
 
-Respuesta del coordinador:
-
-```json
-{"tipo":"RESPUESTA","solicitud":"ENTRAR","resultado":"PERMITIDA","motivo":"","dentro":8,"aforo":10,"puertas":"P1 Norte=ACTIVA, P2 Sur=ACTIVA, P3 Este=CAIDA","lamport":19}
+```
+{"tipo":"RESPUESTA","resultado":"ASIGNADO","numero":8,"emitidos":8,"cupo":10,"lamport":19}
+{"tipo":"RESPUESTA","resultado":"LLAMADO","numero":3,"lamport":23}
+{"tipo":"RESPUESTA","resultado":"ESTADO","emitidos":4,"cupo":10,"asignaciones":4,"espera":"3,4","llamados":"1->V2,2->V3","ventanillas":"V1=ACTIVA,V2=ACTIVA,V3=CAIDA","modo":"NORMAL","lamport":27}
+{"tipo":"RESPUESTA","resultado":"RECHAZADA","solicitud":"TURNO","motivo":"cupo agotado","lamport":31}
+{"tipo":"RESPUESTA","resultado":"LATIDO_OK","lamport":32}
 ```
 
-`resultado` es `PERMITIDA` o `RECHAZADA`. Cuando es `RECHAZADA`, `motivo` dice `aforo completo`, `token invalido` o `nadie dentro`.
+Motivos de rechazo: `cupo agotado`, `no hay turnos en espera`, `token invalido` y `tipo de solicitud desconocido`. Si la ventanilla no puede conectarse con el coordinador, rechaza la solicitud por su cuenta y no entrega ningún número.
 
-## Registros
+El campo `lamport` es el reloj del emisor al enviar. Al recibir, el proceso fija su reloj en `max(local, recibido) + 1`.
 
-Cada proceso escribe `logs/<proceso>.log` (`coordinador.log`, `P1.log`, `P2.log`, `P3.log`), con una línea por evento:
+## Bitácoras
+
+Archivos: `logs/coordinador.log`, `logs/V1.log`, `logs/V2.log`, `logs/V3.log` y `logs/orden_total.log`.
+
+Una línea por evento, con el formato:
 
 ```
 lamport;id_proceso;evento;detalle
 ```
 
-`OrdenTotal` une los cuatro archivos y los ordena por Lamport. Si hay empate, va primero el id de proceso menor. El resultado queda en `logs/orden_total.log`. Las cifras de PruebaCarga se agregan a `logs/prueba_carga.txt`.
+`OrdenTotal` ordena por la marca de Lamport y, si hay empate, por el id del proceso.
 
-## Compilación del informe
+## Compilar el informe
 
 - Compilador: `pdflatex`
-- Archivos principales: `docs/informe.tex` y `docs/entrega_SGA.tex`
-- Las imágenes se leen desde `docs/img/`
+- Archivo principal: `docs/informe.tex`
+- Paquetes: `inputenc`, `fontenc`, `babel` (spanish), `geometry`, `graphicx`, `array`, `booktabs`, `float`
+- Las capturas deben estar en `docs/img/` con los nombres `e0.png` a `e6.png`
 
-```powershell
+```
 cd docs
 pdflatex informe.tex
 pdflatex informe.tex
+```
+
+Se compila dos veces para que se resuelvan las referencias a tablas y figuras.
+
+La página del SGA se compila igual:
+
+```
+cd docs
 pdflatex entrega_SGA.tex
 ```
 
-`informe.tex` se compila dos veces para que se resuelvan las referencias a figuras y tablas.
-
 ## Código reutilizado
+
+| Archivo de este repo | Repositorio propio de origen (URL) | Archivo y commit de origen | Qué se cambió |
+|---|---|---|---|
+| - | - | - | - |
+
+No se reutilizó código.
