@@ -112,9 +112,3 @@ pdflatex entrega_SGA.tex
 `informe.tex` se compila dos veces para que se resuelvan las referencias a figuras y tablas.
 
 ## Código reutilizado
-
-| Archivo de este repo | Repositorio propio de origen (URL) | Archivo y commit de origen | Qué se cambió |
-|---|---|---|---|
-| `src/aforoseguro/*.java` | COMPLETAR: URL de tu repositorio anterior | COMPLETAR: archivo y hash del commit | COMPLETAR |
-
-<!-- Si no reutilizaste código, borra la tabla y escribe: No se reutilizó código. -->

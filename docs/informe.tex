@@ -1,0 +1,127 @@
+% Informe AP-U1 - TurnoJusto
+% Compilar desde docs/:  pdflatex informe.tex  (dos veces)
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{float}
+
+\graphicspath{{img/}}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+
+% Si la captura todavia no existe, muestra un recuadro en lugar de fallar
+\newcommand{\captura}[1]{%
+  \IfFileExists{img/#1}%
+    {\includegraphics[width=\linewidth]{#1}}%
+    {\fbox{\parbox[c][3cm][c]{0.9\linewidth}{\centering\small Falta img/#1}}}%
+}
+
+\begin{document}
+
+\begin{center}
+  {\large\bfseries Universidad Técnica Estatal de Quevedo}\\[2pt]
+  Facultad de Ciencias de la Computación · Carrera de Software\\[6pt]
+  {\Large\bfseries AP-U1 · Grupo 2 · TurnoJusto}\\[2pt]
+  Aplicaciones Distribuidas (ISR-701) · SPA 2026--2027\\[6pt]
+  Mario Sebastián Castro Coello · Docente: Gleiston C. Guerrero-Ulloa, PhD\\
+  Fecha: [falta: fecha de la sesión]
+\end{center}
+
+\section{Prototipo}
+
+El sistema tiene un coordinador (id 0) y tres ventanillas (V1, V2 y V3, ids 1 a 3), cada una en su propio proceso. Está hecho en Java 21 con sockets TCP. Cada mensaje es un JSON de una sola línea terminado en salto de línea, y el coordinador responde cada línea con otra línea. El cupo, el token, el host, el puerto y los tiempos de latido se leen de \texttt{config.properties}. El coordinador atiende cada conexión en un hilo distinto. La asignación de turnos está dentro de un método \texttt{synchronized}.
+
+\section{Escenarios}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}p{0.7cm}p{1.6cm}p{12.9cm}@{}}
+\toprule
+\textbf{E} & \textbf{Captura} & \textbf{Interpretación} \\
+\midrule
+E0 & Fig.~\ref{fig:e0} & Todos los adaptadores aparecen desconectados en \texttt{Get-NetAdapter}. El primer commit lleva el código de sesión 1. \\
+E1 & Fig.~\ref{fig:e1} & V1, V2 y V3 recibieron los turnos 1, 2 y 3, y V1 recibió el 4. Al llamar, V2 recibió el 1 y V3 el 2, en ese orden, porque el coordinador guarda los turnos en espera en una cola FIFO. La orden \texttt{estado} muestra lo mismo en las tres ventanillas, ya que todas consultan al mismo coordinador. \\
+E2 & Fig.~\ref{fig:e2} & Con cupo 10, la solicitud 11 vuelve como \texttt{RECHAZADA} con motivo \emph{cupo agotado}. \texttt{LLAMAR} sin turnos en espera se rechaza con \emph{no hay turnos en espera}. Una ventanilla iniciada con \texttt{--token MALO} recibe \emph{token invalido}, y el coordinador escribe el evento \texttt{TOKEN\_INVALIDO} en su bitácora. \\
+E3 & Fig.~\ref{fig:e3} & En modo normal, \texttt{PruebaCarga} obtuvo exactamente 10 números distintos, del 1 al 10. En modo \texttt{--inseguro} hubo números repetidos y se superó el cupo. Las cifras están en la tabla~\ref{tab:e3}. \\
+E4 & Fig.~\ref{fig:e4} & Al detener V3, el coordinador la marcó como \texttt{CAIDA} a los [falta: ms del log, en mi prueba fueron 6328]~ms sin latidos. El monitor revisa cada 500~ms, por eso la detección ocurre entre 6 y 6,5~s. Al reiniciar V3, su primer latido la volvió a marcar como \texttt{ACTIVA}. Los dos cambios quedan en \texttt{coordinador.log}. \\
+E5 & Fig.~\ref{fig:e5} & Con el coordinador detenido, V1 pidió turno. La conexión fue rechazada y la ventanilla respondió \emph{RECHAZADA localmente: coordinador no disponible}, sin entregar ningún número. También registró \texttt{COORDINADOR\_INACCESIBLE} cuando dejaron de responderse los latidos. \\
+E6 & Fig.~\ref{fig:e6} & \texttt{OrdenTotal} unió los cuatro registros en \texttt{orden\_total.log}, ordenado por Lamport y, en caso de empate, por id de proceso. Los pares causales están en la sección~\ref{sec:e6}. \\
+\bottomrule
+\end{tabular}
+\caption{Escenarios ejecutados}
+\end{table}
+
+\begin{figure}[p]
+\centering
+\begin{minipage}[t]{0.48\linewidth}\centering\captura{e0.png}\caption{E0: red desconectada}\label{fig:e0}\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}\centering\captura{e1.png}\caption{E1: operación normal}\label{fig:e1}\end{minipage}\\[8pt]
+\begin{minipage}[t]{0.48\linewidth}\centering\captura{e2.png}\caption{E2: cupo agotado y token inválido}\label{fig:e2}\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}\centering\captura{e3.png}\caption{E3: PruebaCarga en ambos modos}\label{fig:e3}\end{minipage}\\[8pt]
+\begin{minipage}[t]{0.48\linewidth}\centering\captura{e4.png}\caption{E4: V3 caída y reactivada}\label{fig:e4}\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}\centering\captura{e5.png}\caption{E5: coordinador caído}\label{fig:e5}\end{minipage}\\[8pt]
+\begin{minipage}[t]{0.48\linewidth}\centering\captura{e6.png}\caption{E6: orden total}\label{fig:e6}\end{minipage}
+\end{figure}
+
+\section{Cifras de E3}
+
+% Reemplazar con las cifras de tu propia ejecucion
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+ & \textbf{Normal} & \textbf{\texttt{-{}-inseguro}} \\
+\midrule
+Solicitudes TURNO enviadas & 30 & 30 \\
+Asignadas & 10 & 30 \\
+Rechazadas (cupo agotado) & 20 & 0 \\
+Números distintos entregados & 10 (1 a 10) & 1 (todas el 1) \\
+Emitidos según el coordinador & 10 & 1 \\
+\bottomrule
+\end{tabular}
+\caption{Resultados de PruebaCarga con cupo 10}
+\label{tab:e3}
+\end{table}
+
+\section{Pares causales en el orden total (E6)}
+\label{sec:e6}
+
+% Verificar las marcas con tu propio orden_total.log
+Formato de cada línea: \texttt{lamport;id\_proceso;evento;detalle}.
+
+\textbf{Par 1.} V1 envía la solicitud de turno y el coordinador la recibe:\\
+\texttt{10;1;ENVIA\_TURNO;a=coordinador}\\
+\texttt{12;0;RECIBE\_TURNO;de=V1 lamport\_msg=10}\\
+El mensaje lleva la marca 10. El coordinador fija su reloj en $\max(\mathit{local}, 10)+1 = 12$; su valor local era mayor que 10 por los latidos que ya había recibido. El envío aparece antes que la recepción en el orden total.
+
+\textbf{Par 2.} El coordinador responde con el turno 1 y V1 recibe la respuesta:\\
+\texttt{13;0;ENVIA\_RESPUESTA;a=V1 resultado=ASIGNADO numero=1}\\
+\texttt{14;1;RECIBE\_RESPUESTA;solicitud=TURNO resultado=ASIGNADO numero=1 lamport\_msg=13}\\
+V1 recibe la marca 13, que es mayor que su reloj local, así que pasa a $13+1 = 14$. De nuevo el envío queda antes que la recepción.
+
+En ambos casos la recepción siempre tiene una marca mayor que el envío, porque el receptor toma el máximo y le suma 1. Por eso, ordenar por Lamport nunca pone una recepción antes de su envío.
+
+\section{Preguntas de análisis}
+
+\textbf{1. ¿Por qué falló el modo \texttt{-{}-inseguro} y qué lo evita en el modo normal?}
+En modo inseguro, los 30 hilos leyeron \texttt{ultimo = 0} casi al mismo tiempo. Durante la pausa de 50~ms ninguno había escrito todavía, así que todos pasaron la verificación del cupo y todos calcularon el número 1. Es una condición de carrera sobre la variable \texttt{ultimo}. Por eso se asignaron 30 turnos con el mismo número y el coordinador cree que solo emitió 1. En modo normal, el método \texttt{asignarSeguro()} es \texttt{synchronized}: leer, comparar con el cupo, incrementar y encolar ocurren con exclusión mutua, un hilo a la vez. El costo es que las solicitudes TURNO se atienden en serie y los demás hilos esperan el candado. En esta prueba no se notó porque la sección crítica es muy corta, pero con muchas ventanillas el candado sería el cuello de botella.
+
+\textbf{2. ¿Qué priorizó el sistema en E5?}
+Priorizó la consistencia. Sin coordinador, la ventanilla rechaza la solicitud y no entrega ningún número, por lo que la numeración nunca se repite, pero las ventanillas dejan de estar disponibles para dar turnos. En términos del teorema CAP, ante una partición el sistema elige C sobre A. Si cada ventanilla entregara números propios con prefijo (V2-015), se conservaría la unicidad, porque el prefijo hace que dos ventanillas nunca generen el mismo turno. Se perdería la numeración consecutiva global y el cupo total, ya que cada ventanilla contaría por su lado. También se perdería el orden de llamada entre ventanillas.
+
+\textbf{3. ¿Cómo evitar el punto único de fallo?}
+Usaría replicación del coordinador con un algoritmo de elección de líder, como el de bully o el de anillo, usando los mismos latidos para detectar que el líder cayó. El problema nuevo es el último número emitido: si el líder asigna el turno 7 y cae antes de copiarlo a las réplicas, el nuevo líder puede volver a entregar el 7. Para evitarlo, cada asignación tendría que confirmarse en la mayoría de réplicas antes de responder, y eso aumenta el tiempo de cada TURNO.
+
+\textbf{4. ¿Qué falacia se tuvo en cuenta en los tiempos de latido?}
+La de que la red es confiable y la latencia es cero. El tiempo de 6~s equivale a perder tres latidos seguidos de 2~s antes de declarar caída una ventanilla, así un latido perdido o atrasado no la marca como caída. Si la red tuviera 7~s de latencia, todos los latidos llegarían después del límite y el coordinador marcaría las ventanillas como \texttt{CAIDA} y luego \texttt{ACTIVA} una y otra vez, aunque estuvieran funcionando. Además, la ventanilla espera la respuesta como máximo 3~s, así que daría al coordinador por caído y rechazaría los turnos, igual que en E5.
+
+\section{Limitaciones}
+
+El reloj de Lamport vuelve a 0 cuando se reinicia un proceso, como pasó con V3 en E4. Como los registros se acumulan entre ejecuciones, el orden total mezcla eventos de corridas distintas con marcas bajas. Otra limitación es el reintento automático de la ventanilla: si el coordinador asigna un turno pero la respuesta se pierde, la ventanilla reenvía TURNO y la persona recibe un segundo número. Para corregirlo, cada solicitud debería llevar un identificador único que el coordinador recuerde.
+
+\end{document}
